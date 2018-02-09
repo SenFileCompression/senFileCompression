@@ -28,6 +28,31 @@ import java.util.logging.Logger;
  */
 public class SenFileCompressor {
 
+    public static void writeFileMetaData(Path file, SeekableByteChannel sbcDst) throws IOException{
+        long size = Files.size(file);
+        String fileHeader = file.toFile().getName() + "," + Long.toString(size)+"\n";
+        byte[] bytes = fileHeader.getBytes();
+        ByteBuffer buf = ByteBuffer.wrap(bytes);
+        sbcDst.write(buf);
+    }
+    public static int writeFileData(SeekableByteChannel src, SeekableByteChannel dst) throws IOException{
+        ByteBuffer buf = ByteBuffer.allocate(10);
+        int nb = 0;
+        int x = 0;
+        ByteBuffer bb;
+        while((x = src.read(buf))>0){
+             nb += x;
+             byte[] bytes = buf.array();
+             bb = ByteBuffer.wrap(bytes);
+             dst.write(bb);
+             /*for(byte b: bytes){
+                 System.out.print(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
+             }
+             System.out.println();*/
+             buf.flip();
+        }
+        return nb;
+    }
     /**
      * @param args the command line arguments
      */
@@ -45,37 +70,13 @@ public class SenFileCompressor {
             SeekableByteChannel sbcSrc2 = Files.newByteChannel(src2);
             SeekableByteChannel sbcDst = Files.newByteChannel(encoded, options);
         ){
-            ByteBuffer buf = ByteBuffer.allocate(10);
-            long size = Files.size(src);
-            String fileHeader = src.toFile().getName() + "," + Long.valueOf(size).toString()+"\n";
-            byte[] temp = fileHeader.getBytes();
-            ByteBuffer tempBuf = ByteBuffer.wrap(temp);
-            sbcDst.write(tempBuf);
-            while(sbcSrc.read(buf)>0){
-                byte[] bytes = buf.array();
-                ByteBuffer bb = ByteBuffer.wrap(bytes);
-                sbcDst.write(bb);
-                /*for(byte b: bytes){
-                    System.out.print(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
-                }
-                System.out.println();*/
-                buf.flip();
-            }
-            size = Files.size(src2);
-            fileHeader = src2.toFile().getName() + "," + Long.valueOf(size).toString()+"\n";
-            temp = fileHeader.getBytes();
-            tempBuf = ByteBuffer.wrap(temp);
-            sbcDst.write(tempBuf);
-            while(sbcSrc2.read(buf)>0){
-                byte[] bytes = buf.array();
-                ByteBuffer bb = ByteBuffer.wrap(bytes);
-                sbcDst.write(bb);
-                /*for(byte b: bytes){
-                    System.out.print(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
-                }
-                System.out.println();*/
-                buf.flip();
-            }
+          
+            writeFileMetaData(src, sbcDst);
+            writeFileData(sbcSrc, sbcDst);
+            
+            writeFileMetaData(src2, sbcDst);
+            writeFileData(sbcSrc2, sbcDst);
+        
         }catch(IOException e){
             System.out.println("Une exception: "+e);
         }
