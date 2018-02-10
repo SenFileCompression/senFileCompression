@@ -28,12 +28,12 @@ import java.util.logging.Logger;
  */
 public class SenFileCompressor {
 
-    public static void writeFileMetaData(Path file, SeekableByteChannel sbcDst) throws IOException{
+    public static void writeFileMetaData(Path file, SeekableByteChannel sbc) throws IOException{
         long size = Files.size(file);
         String fileHeader = file.toFile().getName() + "," + Long.toString(size)+"\n";
         byte[] bytes = fileHeader.getBytes();
         ByteBuffer buf = ByteBuffer.wrap(bytes);
-        sbcDst.write(buf);
+        sbc.write(buf);
     }
     public static int writeFileData(SeekableByteChannel src, SeekableByteChannel dst) throws IOException{
         ByteBuffer buf = ByteBuffer.allocate(10);
@@ -53,30 +53,30 @@ public class SenFileCompressor {
         }
         return nb;
     }
+    public static void addFileToArchive(Path src, SeekableByteChannel sbcDst) throws IOException{
+                    SeekableByteChannel sbcSrc = Files.newByteChannel(src);
+                    writeFileMetaData(src, sbcDst);
+                    writeFileData(sbcSrc, sbcDst);         
+    }
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
         Path src = Paths.get("mon-fichier.txt");
         Path src2 = Paths.get("001-al-fatihah.mp3");
-        Path encoded = Paths.get("encoded.temp");
+        Set<Path> files = new HashSet<Path>();
+        files.add(src);
+        files.add(src2);
+        
+        Path archived = Paths.get("archived.temp");
         // Create the set of options for appending to the file.
         Set<OpenOption> options = new HashSet<OpenOption>();
         options.add(APPEND);
         options.add(CREATE);
             
-        try(
-            SeekableByteChannel sbcSrc = Files.newByteChannel(src);
-            SeekableByteChannel sbcSrc2 = Files.newByteChannel(src2);
-            SeekableByteChannel sbcDst = Files.newByteChannel(encoded, options);
-        ){
-          
-            writeFileMetaData(src, sbcDst);
-            writeFileData(sbcSrc, sbcDst);
-            
-            writeFileMetaData(src2, sbcDst);
-            writeFileData(sbcSrc2, sbcDst);
-        
+        try(SeekableByteChannel sbcDst = Files.newByteChannel(archived, options)){
+            for(Path file: files)
+                addFileToArchive(file, sbcDst);
         }catch(IOException e){
             System.out.println("Une exception: "+e);
         }
