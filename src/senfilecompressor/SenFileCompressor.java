@@ -107,14 +107,35 @@ public class SenFileCompressor {
 
                 int nblignes = count.getLineNumber()+1;//+1 car les index commencent par 0
                 System.out.println("Le nombre de lignes de src/mon-fichier.txt: "+nblignes);
-           /* for(int i=1;i<nbfichiers;i++){
-                byte[] bytes = Arrays.copyOfRange(buf.array(), z, z);
-                bb = ByteBuffer.wrap(bytes);
-                dest.write(bb);
-                if(x==z) break;
-                
-                buf.flip();  
-            }*/
+
+
+            for(int i=1;i<nbfichiers;i++){
+
+                String line = Files.readAllLines(archive).get(nblignes+1);
+                String[] parties = line.split(",");
+                int taillefich = Integer.parseInt(parties[1]);
+                SeekableByteChannel dest1;
+                dest1 = Files.newByteChannel(Paths.get("src/"+parties[0]),options);
+                int y = taillefich+line.length()+3;/*pour copier jusqu'a la fin en tenant compte qu'on a aussi lu la ligne
+                                                       qui contient le nom et la taille*/
+                ByteBuffer buff = ByteBuffer.allocate(y);
+                ByteBuffer bbf;
+
+
+                int nb1=0;
+                int x1 = 0;
+                while((x1 = src.read(buf))>0)
+                {
+                    nb1+=x;
+                    byte[] bytes = Arrays.copyOfRange(buff.array(), line.length()+1, y);
+                    bbf = ByteBuffer.wrap(bytes);
+                    dest1.write(bbf);
+                    System.out.println("Nombre d'octets lus----------: "+nb1);
+                    if(x1==y) break;
+
+                    buff.flip();
+                }
+            }
             
              
         }catch(IOException e){
