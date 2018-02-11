@@ -7,6 +7,8 @@ package senfilecompressor;
 
 import java.io.IOException;
 import java.io.File;
+import java.io.FileReader;
+import java.io.LineNumberReader;
 import org.apache.commons.io.FileUtils; //il faut ajouter le jar correspondant au projet
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
@@ -21,12 +23,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- *
- * @author Dieylany
- */
 public class SenFileCompressor {
 
+    public static void doc(){ //cette fonction sera appelée lorsque l'utilisateur saisira l'option -h
+                System.out.println("Ceci est un programme qui permet l'archivage et la compression de fichiers.");
+                System.out.println("1. Saisir java SenFileCompressor –c <liste fichiers à compresser> 2 va fournir en sortie un fichier d’extension « .sfc » qui regroupe, sous forme compressée, les différents fichiers fournis en paramètre.)");
+                System.out.println("2. Saisir java SenFileCompressor –d fichierADecompresser.sfc va fournir en sortie l’intégralité des fichiers contenus dans l’archive donné en paramètre.");
+                System.out.println("3. Saisir java SenFileCompressor –h pour obtenir l'aide sur l'utilisation du programme.");
+    }
     public static void writeFileMetaData(Path file, SeekableByteChannel sbc) throws IOException{
         long size = Files.size(file);
         String fileHeader = file.toFile().getName() + "," + Long.toString(size)+"\n";
@@ -70,32 +74,40 @@ public class SenFileCompressor {
             int x = 0;
             String line0 = Files.readAllLines(archive).get(0);
             String[] parts = line0.split(",");
-            int taillefichier1 = Integer.parseInt(parts[1]); // 034556
-            System.out.println("Nom du fichier "+parts[0]);
-            System.out.println("Taille "+taillefichier1);
+            int taillefichier1 = Integer.parseInt(parts[1]);
             OpenOption[] options;
             options = new OpenOption[] { WRITE, CREATE, TRUNCATE_EXISTING };
             SeekableByteChannel dest;
             dest = Files.newByteChannel(Paths.get("src/"+parts[0]),options);
-            int z = taillefichier1+line0.length();/*pour copier jusqu'a la fin en tenant compte qu'on a aussi lu la ligne 
+            int z = taillefichier1+line0.length()+3;/*pour copier jusqu'a la fin en tenant compte qu'on a aussi lu la ligne 
                                                        qui contient le nom et la taille*/
             ByteBuffer buf = ByteBuffer.allocate(z);
             ByteBuffer bb;
             
+            
 
             while((x = src.read(buf))>0)
             {
-                SeekableByteChannel dest2;
-                dest2 = Files.newByteChannel(Paths.get("src/"+parts[0]),options);
-                byte[] bytes = Arrays.copyOfRange(buf.array(), line0.length(), z);
+                nb+=x;
+                byte[] bytes = Arrays.copyOfRange(buf.array(), line0.length()+1, z);
                 bb = ByteBuffer.wrap(bytes);
                 dest.write(bb);
+                System.out.println("Nombre d'octets lus----------: "+nb);
                 if(x==z) break;
                 
                 buf.flip();  
             }
+            FileReader input = new FileReader("src/"+parts[0]);
+            LineNumberReader count = new LineNumberReader(input);
             
-            /*for(int i=1;i<nbfichiers;i++){
+               while (count.skip(Long.MAX_VALUE) > 0)
+                {
+                   // Loop just in case the file is > Long.MAX_VALUE or skip() decides to not read the entire file
+                }
+
+                int nblignes = count.getLineNumber()+1;//+1 car les index commencent par 0
+                System.out.println("Le nombre de lignes de src/mon-fichier.txt: "+nblignes);
+           /* for(int i=1;i<nbfichiers;i++){
                 byte[] bytes = Arrays.copyOfRange(buf.array(), z, z);
                 bb = ByteBuffer.wrap(bytes);
                 dest.write(bb);
@@ -113,6 +125,11 @@ public class SenFileCompressor {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException {
+        
+        if(args.length==1){
+            System.out.println("Veuillez donner en paramètre au moins deux fichiers");
+            return;
+        }
         Path src = Paths.get("mon-fichier.txt");
         Path src2 = Paths.get("001-al-fatihah.mp3");
         Set<Path> files = new HashSet<Path>();
