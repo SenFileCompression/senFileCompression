@@ -38,32 +38,32 @@ public class SenFileCompressor {
         ByteBuffer buf = ByteBuffer.wrap(bytes);
         sbc.write(buf);
     }
-    public static int writeFileData(SeekableByteChannel src, SeekableByteChannel dst) throws IOException{
-        ByteBuffer buf = ByteBuffer.allocate(10);
+    public static int writeFileData(Path file,SeekableByteChannel src, SeekableByteChannel dst) throws IOException{
+        ByteBuffer buf = ByteBuffer.allocate((int)Files.size(file));
+        
         int nb = 0;
         int x = 0;
         ByteBuffer bb;
+        // buf.flip();
         while((x = src.read(buf))>0){
              nb += x;
              byte[] bytes = buf.array();
              bb = ByteBuffer.wrap(bytes);
              dst.write(bb);
-             /*for(byte b: bytes){
-                 System.out.print(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
-             }
-             System.out.println();*/
              buf.flip();
         }
+        buf.flip();
+        buf.clear();
         return nb;
+        
     }
     public static void addFileToArchive(Path src, SeekableByteChannel sbcDst) throws IOException{
                     SeekableByteChannel sbcSrc = Files.newByteChannel(src);
                     writeFileMetaData(src, sbcDst);
-                    writeFileData(sbcSrc, sbcDst);         
+                    writeFileData(src,sbcSrc, sbcDst);         
     }
     
     public static void desarchiver(Path archive, int nbfichiers){
-              // Path dest = Paths.get("archived.txt");
         
         try(
                 SeekableByteChannel src = Files.newByteChannel(archive);
@@ -115,6 +115,8 @@ public class SenFileCompressor {
                 String[] parties = line.split(",");
                 int taillefich = Integer.parseInt(parties[1]);
                 SeekableByteChannel dest1;
+                
+                System.out.println("parties[0]: "+parties[0]);
                 dest1 = Files.newByteChannel(Paths.get("src/"+parties[0]),options);
                 int y = taillefich+line.length()+3;/*pour copier jusqu'a la fin en tenant compte qu'on a aussi lu la ligne
                                                        qui contient le nom et la taille*/
@@ -124,10 +126,10 @@ public class SenFileCompressor {
 
                 int nb1=0;
                 int x1 = 0;
-                while((x1 = src.read(buf))>0)
+                while((x1 = src.read(buff))>0)
                 {
-                    nb1+=x;
-                    byte[] bytes = Arrays.copyOfRange(buff.array(), line.length()+1, y);
+                    nb1+=x1;
+                    byte[] bytes = Arrays.copyOfRange(buff.array(), line.length()+3, y);
                     bbf = ByteBuffer.wrap(bytes);
                     dest1.write(bbf);
                     System.out.println("Nombre d'octets lus----------: "+nb1);
@@ -135,6 +137,11 @@ public class SenFileCompressor {
 
                     buff.flip();
                 }
+                
+                /*File file1 = new File("src/"+parties[0]);
+                String content = FileUtils.readFileToString(file1, "ISO8859_1");
+                FileUtils.writeStringToFile(file1, content, "ISO8859_1");*/
+                
             }
             
              
@@ -153,9 +160,11 @@ public class SenFileCompressor {
         }
         Path src = Paths.get("mon-fichier.txt");
         Path src2 = Paths.get("001-al-fatihah.mp3");
+        Path src3 = Paths.get("bd_dic2.txt");
         Set<Path> files = new HashSet<Path>();
         files.add(src);
         files.add(src2);
+        // files.add(src3);
         
         Path archived = Paths.get("archived.temp");
         // Create the set of options for appending to the file.
@@ -165,15 +174,15 @@ public class SenFileCompressor {
         try(SeekableByteChannel sbcDst = Files.newByteChannel(archived, options)){
             for(Path file: files)
                 addFileToArchive(file, sbcDst);
-            File file = new File("archived.temp");
-            String content = FileUtils.readFileToString(file, "ISO8859_1");
-            FileUtils.writeStringToFile(file, content, "UTF-8");//on change l'encodage du fichier afin d'être en mesure de lire dessus
+           
+            File file1 = new File("archived.temp");
+            String content = FileUtils.readFileToString(file1, "ISO8859_1");
+            FileUtils.writeStringToFile(file1, content, "UTF-8");//on change l'encodage du fichier afin d'être en mesure de lire dessus
                 
         }catch(IOException e){
             System.out.println("Une exception: "+e);
         }
         
-        System.out.println(Files.size(Paths.get("monfichier2.txt"))+" La taille de monfichier2.txt: ");
         System.out.println(Files.size(Paths.get("mon-fichier.txt"))+" La taille de mon-fichier.txt: ");
         System.out.println("Le nombre de fichiers à archiver: " + files.size());
         desarchiver(Paths.get("archived.temp"),files.size());

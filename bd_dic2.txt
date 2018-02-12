@@ -1,0 +1,47 @@
+create database DIC2;
+
+
+use DIC2;
+
+
+create table matiere (
+
+         idMatiere int primary key auto_increment not null,
+
+         libMatiere varchar(100) not null
+);
+
+
+create table etudiant (
+
+         idEtudiant int primary key auto_increment not null,
+
+         Nom varchar(100) not null
+);
+
+
+create table note (
+
+         idEtudiant int not null,
+
+         idMatiere int not null,
+
+         note decimal not null,
+
+         constraint pk primary key (idMatiere, idEtudiant),
+
+         constraint fk_1 foreign key (idEtudiant) references etudiant (idEtudiant),
+
+         constraint fk_2 foreign key (idMatiere) references matiere (idMatiere)
+);
+
+
+
+
+create user RespPed@'localhost' identifed by 'responsable';
+
+
+create user Prof@'localhost' identifed by 'professor';
+
+
+create user Etudiant@'localhost' identifed by 'etudiant';
